@@ -145,7 +145,7 @@ u_int64_t hashmap_default_hash(char *key, size_t map_size)
     for (int i = 0, x = 0; key[i] != '\0' && i < TABLE_KEY_MAX_LENGTH; i++)
     {
         val += key[i] << x;
-        x = (x + 1) & 31; // ((sizeof(val) * 8) - 1)
+        x = (x + 1) & 63;
     }
     return val % map_size;
 }
