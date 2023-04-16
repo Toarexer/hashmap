@@ -4,14 +4,15 @@
 hashmap_element *create_element(char *key, void *value, hashmap_element *prev)
 {
     hashmap_element *e = (hashmap_element *)malloc(sizeof(hashmap_element));
-    size_t keylen = strnlen(key, 0xff);
+    size_t keylen = strnlen(key, TABLE_KEY_MAX_LENGTH);
 
     e->value = value;
-    e->key = (char *)malloc(keylen);
+    e->key = (char *)malloc(keylen + 1);
     e->prev = prev;
     e->next = NULL;
 
     memcpy(e->key, key, keylen);
+    e->key[keylen] = '\0';
     return e;
 }
 
@@ -113,6 +114,8 @@ void hashmap_add(hashmap *hm, char *key, void *value)
         hm->data[index] = create_element(key, value, e);
         return;
     }
+    ++hm->collisions;
+
     while (e->next != NULL)
         e = e->next;
     e->next = create_element(key, value, e);
@@ -124,6 +127,9 @@ int hashmap_remove(hashmap *hm, char *key)
     hashmap_element *e = get_element(hm, key, &index);
     if (e != NULL)
     {
+        if (e->prev != NULL || e->next != NULL)
+            --hm->collisions;
+
         if (e->prev == NULL)
             hm->data[index] = e->next;
         else
@@ -148,4 +154,32 @@ u_int64_t hashmap_default_hash(char *key, size_t map_size)
         x = (x + 1) & 63;
     }
     return val % map_size;
+}
+
+void hashmap_print(hashmap *hm, FILE *f, void(printfunc)(FILE *f, hashmap_element *e))
+{
+    if (printfunc != NULL)
+        for (u_int64_t i = 0; i < hm->size; i++)
+        {
+            fprintf(f, "%016X:\n", i);
+            hashmap_element *e = hm->data[i];
+
+            while (e != NULL)
+            {
+                printfunc(f, e);
+                e = e->next;
+            }
+        }
+    else
+        for (u_int64_t i = 0; i < hm->size; i++)
+        {
+            fprintf(f, "%016X:\n", i);
+            hashmap_element *e = hm->data[i];
+
+            while (e != NULL)
+            {
+                fprintf(f, "\t%s: 0x%08x\n", e->key, e->value);
+                e = e->next;
+            }
+        }
 }

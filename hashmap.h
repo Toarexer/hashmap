@@ -1,9 +1,12 @@
 #ifndef HASHMAP_H
 #define HASHMAP_H
 
+#include <stdio.h>
 #include <stdlib.h>
 
-#define TABLE_KEY_MAX_LENGTH 128
+#ifndef TABLE_KEY_MAX_LENGTH
+#define TABLE_KEY_MAX_LENGTH 63
+#endif
 #define ANY(v) ((void *)v)
 
 typedef struct hashmap_element
@@ -24,29 +27,43 @@ typedef struct hashmap
     void (*freefunc)(void *);
 } hashmap;
 
-// Create a new hashmap
+// Creates a new hashmap with the provided size and functions.
+// The hash function is responsible for turning the string key into an index and the free function is resposible for freeing the stored value.
+//
+// The values are a (void *) and up to the user how they handle them.
 //
 // 'freefunc' can be NULL
 hashmap *hashmap_create(size_t size, u_int64_t (*hashfunc)(char *, size_t), void (*freefunc)(void *));
 
-// Free the hashmap and it's children if a function was provided.
+// Frees the hashmap and it's elements. Frees the values if a freeing function was provided.
 void hashmap_destroy(hashmap *hm);
 
-// Get the value from the key.
+// Gets the value from the key.
 void *hashmap_get(hashmap *hm, char *key);
 
-// Set the value for a key. Add the key if it is not part of the map yet.
+// Sets the value for a key.
+// Adds the key if it is not part of the map yet.
 void hashmap_set(hashmap *hm, char *key, void *value);
 
-// Add a new value to the hashmap.
+// Adds a new value to the hashmap.
+// This does not check for exisitng keys and can create duplicates, unlike hasmap_set.
 void hashmap_add(hashmap *hm, char *key, void *value);
 
-// Remove a value from the hashmap.
+// Removes a value from the hashmap.
 //
 // Returns 0 on success.
 int hashmap_remove(hashmap *hm, char *key);
 
-// Get the hash (index) from the key.
+// Gets the hash (index) from the key.
+//
+// Very bad! Improve later!
 u_int64_t hashmap_default_hash(char *key, size_t map_size);
+
+// Print out the entire hashmap.
+// The printfunc function takes in a hashmap_element pointer and fefines how the element should be printed.
+// The default format for printing is ("\\t%s: 0x%08x\n", key, value).
+//
+// 'printfunc' can be NULL
+void hashmap_print(hashmap *hm, FILE *f, void(printfunc)(FILE *f, hashmap_element *e));
 
 #endif
